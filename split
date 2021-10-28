@@ -1,0 +1,18 @@
+#!/bin/bash
+
+[[ ! -d "templates" ]] \
+  && echo "templates folder doesn't exist! Please create templates directory with all of the note types inside" \
+  && exit 1
+
+for dir in templates/*/; do
+  [[ -f "$dir/front.html" || -f "$dir/back.html" ]] && echo "You should run the combine file instead!" \
+    && exit 1
+  [[ -f "$dir"/Card\ 1 ]] \
+    && gcsplit --prefix="$dir"/front --suffix-format='%0d.html' "$dir"/Card\ 1 '/[\S\s]*```/' {*}
+  mv "$dir"/front0.html "$dir"/front.html
+  mv "$dir"/front1.html "$dir"/back.html
+  sed -r '1s/^.{3}//' "$dir"/back.html >"$dir"/back2.html && mv "$dir"/back2.html "$dir"/back.html
+
+  #  sed -r 's/Back/Changed/g' "$dir"/back.html >"$dir"/back2.html && mv "$dir"/back2.html "$dir"/back.html
+  rm "$dir"/Card\ ?
+done
