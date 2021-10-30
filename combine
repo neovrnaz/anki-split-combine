@@ -1,17 +1,10 @@
 #!/bin/bash
 
 for dir in templates/*; do
-  for file in "$dir"/*; do
-
-    if [[ $file != "$dir/style.css" && $file != "$dir/Card 1" ]]; then
-    echo "$file"
-      break
-    fi
-  done
-#  [[ -f "$dir/Card 1" ]] && echo "You should run the split file instead!" && exit 1;
-#  echo -e "\`\`\`$(cat "$dir"/back.html)" >"$dir/back.html"
-#  cat "$dir/back.html" | sudo tee -a "$dir/front.html" >/dev/null
-#  touch "$dir/Card 1"
-#  mv "$dir/front.html" "$dir/Card 1"
-#  rm "$dir/back.html"
+  [[ -f "$dir/Card 1" ]] && echo "You should run the split file instead!" && exit 1;
+  echo -e "\`\`\`$(cat "$dir"/back.html)" >"$dir/back.html"
+  cat "$dir/back.html" | sudo tee -a "$dir/front.html" >/dev/null
+  touch "$dir/Card 1"
+  mv "$dir/front.html" "$dir/Card 1"
+  rm "$dir/back.html"
 done

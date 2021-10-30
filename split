@@ -1,18 +1,39 @@
 #!/bin/bash
 
-[[ ! -d "templates" ]] \
-  && echo "templates folder doesn't exist! Please create templates directory with all of the note types inside" \
-  && exit 1
-
-for dir in templates/*/; do
-  [[ -f "$dir/front.html" || -f "$dir/back.html" ]] && echo "You should run the combine file instead!" \
-    && exit 1
+function split_card() {
+  dir="$1"
   [[ -f "$dir"/Card\ 1 ]] \
     && gcsplit --prefix="$dir"/front --suffix-format='%0d.html' "$dir"/Card\ 1 '/[\S\s]*```/' {*}
   mv "$dir"/front0.html "$dir"/front.html
   mv "$dir"/front1.html "$dir"/back.html
   sed -r '1s/^.{3}//' "$dir"/back.html >"$dir"/back2.html && mv "$dir"/back2.html "$dir"/back.html
+}
 
-  #  sed -r 's/Back/Changed/g' "$dir"/back.html >"$dir"/back2.html && mv "$dir"/back2.html "$dir"/back.html
-  rm "$dir"/Card\ ?
-done
+function main() {
+  [ ! "$(ls templates)" ] && printf "templates folder either doesn't exist or is empty. exiting..." \
+    && exit 1
+  for dir in templates/*; do
+    for file in "$dir"/*; do
+      local note_type
+      note_type=$(basename -- "$dir")
+      note_type="${note_type%.*}"
+      [[ -f "$dir/front.html" || -f "$dir/back.html" ]] && echo "HTML files were found. Maybe you meant to run combine instead?" \
+        && exit 1
+      [[ $file != "$dir/style.css" && $file != "$dir/Card 1" ]] \
+        && echo "Only a single card type ('Card 1') is supported. Please try again after removing the note type: '$note_type' "
+    done
+    [[ $file != "$dir/style.css" && $file != "$dir/Card 1" ]] \
+      && exit 1
+  done
+
+  for dir in templates/*; do
+    for file in "$dir"/*; do
+      local split_card
+      split_card=$(split_card "$dir")
+      echo "$split_card"
+      rm "$dir"/Card\ ?
+    done
+  done
+}
+
+main "$@"
