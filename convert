@@ -1,0 +1,66 @@
+#!/bin/bash
+
+function split_card() {
+  dir="$1"
+  echo "HTML files were found. Converting each front and back into 'Card 1'"
+  [[ -f "$dir"/Card\ 1 ]] \
+    && gcsplit --prefix="$dir"/front --suffix-format='%0d.html' "$dir"/Card\ 1 '/[\S\s]*```/' {*}
+  mv "$dir"/front0.html "$dir"/front.html
+  mv "$dir"/front1.html "$dir"/back.html
+  sed -r '1s/^.{3}//' "$dir"/back.html >"$dir"/back2.html && mv "$dir"/back2.html "$dir"/back.html
+}
+
+function combine_html() {
+  dir="$1"
+  [[ -f "$dir/Card 1" ]] && echo "Note Types were found. Maybe you meant to run split instead?" && exit 1
+  echo -e "\`\`\`$(cat "$dir"/back.html)" >"$dir/back.html"
+  cat "$dir/back.html" | sudo tee -a "$dir/front.html" >/dev/null
+  touch "$dir/Card 1"
+  mv "$dir/front.html" "$dir/Card 1"
+  rm "$dir/back.html"
+}
+
+function print_unsupported() {
+  if [[ $has_unsupported_card_type == "true" ]]; then
+    printf "\nonly a single card type ('Card 1') is supported\nskipping over these directories (you might want to remove these):\n"
+    for note_type in "${supported_note_types[@]}"; do
+      printf " - %s\n" "$note_type"
+    done
+  fi
+}
+
+function check_project_structure() {
+    [ ! "$(ls templates)" ] && printf "templates folder either doesn't exist or is empty. exiting..." \
+    && exit 1
+}
+
+function main() {
+  local should_split
+  local should_combine
+
+  local has_unsupported_note_type="false"
+  declare -a supported_note_types=()
+  for dir in templates/*; do
+    for file in "$dir"/*; do
+      file=$(basename -- "$file")
+      file="${file%.*}"
+      [[ -f "$dir/front.html" || -f "$dir/back.html" ]] && should_combine="true" || should_split="true"
+      [[ $file == "Card 1" && $file != "style" ]] \
+        && supported_note_types+=("$note_type") \
+        && has_unsupported_note_type="true"
+    done
+
+        if [[ $should_split == "true" ]; then
+          local split_card
+          split_card=$(split_card "$dir")
+          rm "$dir"/Card\ ?
+        elif [[ $should_combine == "true" ]]; then
+          local combine_html
+          combine_html=$(combine_html "$dir")
+        fi
+        printf "\n"
+  done
+
+}
+
+main "$@"
