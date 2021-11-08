@@ -1,7 +1,7 @@
 #!/bin/bash
 
 function split_card() {
-  dir="$1"
+  local dir="$1"
   echo "HTML files were found. Converting each front and back into 'Card 1'"
   [[ -f "$dir"/Card\ 1 ]] \
     && gcsplit --prefix="$dir"/front --suffix-format='%0d.html' "$dir"/Card\ 1 '/[\S\s]*```/' {*}
@@ -11,7 +11,7 @@ function split_card() {
 }
 
 function combine_html() {
-  dir="$1"
+  local dir="$1"
   [[ -f "$dir/Card 1" ]] && echo "Note Types were found. Maybe you meant to run split instead?" && exit 1
   echo -e "\`\`\`$(cat "$dir"/back.html)" >"$dir/back.html"
   cat "$dir/back.html" | sudo tee -a "$dir/front.html" >/dev/null
@@ -21,20 +21,25 @@ function combine_html() {
 }
 
 function print_unsupported() {
+  local supported_note_types="$1"
   if [[ $has_unsupported_card_type == "true" ]]; then
     printf "\nonly a single card type ('Card 1') is supported\nskipping over these directories (you might want to remove these):\n"
     for note_type in "${supported_note_types[@]}"; do
+
       printf " - %s\n" "$note_type"
     done
   fi
+  kill -s TERM "$TOP_PID"
 }
 
 function check_project_structure() {
     [ ! "$(ls templates)" ] && printf "templates folder either doesn't exist or is empty. exiting..." \
-    && exit 1
+    && kill -s TERM "$TOP_PID"
 }
 
 function main() {
+  trap "exit 1" TERM
+  export TOP_PID=$$
   local should_split
   local should_combine
 
@@ -49,9 +54,10 @@ function main() {
         && supported_note_types+=("$note_type") \
         && has_unsupported_note_type="true"
     done
-
+    local print_unsupported
+        print_unsupported=$(print_unsupported "$")
         if [[ $should_split == "true" ]; then
-          local split_card
+    local split_card
           split_card=$(split_card "$dir")
           rm "$dir"/Card\ ?
         elif [[ $should_combine == "true" ]]; then
